@@ -620,7 +620,6 @@ function selectOverlayStatus(side, el) {
 }
 
 async function saveEditChanges() {
-  console.log('saveEditChanges called, rowIndex:', editingRowIndex);
   if (!editingRowIndex) return;
   const groomAmt = document.getElementById('edit-groom-amount').value || '0';
   const brideAmt = document.getElementById('edit-bride-amount').value || '0';
