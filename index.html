@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>מעקב הוצאות חתונה</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+    background: #f5f5f7;
+    color: #1c1c1e;
+    min-height: 100vh;
+    padding-bottom: 40px;
+  }
+
+  header {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    color: white;
+    padding: 20px 16px 16px;
+    text-align: center;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+  }
+  header h1 { font-size: 20px; font-weight: 600; letter-spacing: 0.5px; }
+  header p { font-size: 13px; opacity: 0.7; margin-top: 3px; }
+
+  .tabs {
+    display: flex;
+    background: white;
+    border-bottom: 1px solid #e5e5ea;
+    position: sticky;
+    top: 72px;
+    z-index: 9;
+  }
+  .tab {
+    flex: 1;
+    padding: 12px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 500;
+    color: #8e8e93;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s;
+  }
+  .tab.active {
+    color: #c9a84c;
+    border-bottom-color: #c9a84c;
+  }
+
+  .screen { display: none; padding: 16px; }
+  .screen.active { display: block; }
+
+  .card {
+    background: white;
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  .card-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #8e8e93;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+  }
+
+  .field { margin-bottom: 14px; }
+  .field label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: #3c3c43;
+    margin-bottom: 6px;
+  }
+  .field input, .field textarea, .field select {
+    width: 100%;
+    padding: 11px 13px;
+    border: 1.5px solid #e5e5ea;
+    border-radius: 10px;
+    font-size: 16px;
+    font-family: inherit;
+    background: #fafafa;
+    color: #1c1c1e;
+    -webkit-appearance: none;
+    transition: border-color 0.2s;
+  }
+  .field input:focus, .field textarea:focus {
+    outline: none;
+    border-color: #c9a84c;
+    background: white;
+  }
+  .field textarea { resize: none; height: 70px; }
+
+  .split-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .side-card {
+    border-radius: 12px;
+    padding: 12px;
+    border: 2px solid transparent;
+  }
+  .side-card.groom {
+    background: #eef4ff;
+    border-color: #4a90d9;
+  }
+  .side-card.bride {
+    background: #fff0f5;
+    border-color: #e91e8c;
+  }
+  .side-label {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    text-align: center;
+  }
+  .side-card.groom .side-label { color: #2c6fad; }
+  .side-card.bride .side-label { color: #b5176e; }
+
+  .side-card input, .side-card select {
+    width: 100%;
+    padding: 9px 10px;
+    border: 1.5px solid rgba(0,0,0,0.12);
+    border-radius: 8px;
+    font-size: 15px;
+    font-family: inherit;
+    background: white;
+    margin-bottom: 8px;
+    -webkit-appearance: none;
+  }
+  .side-card input:last-child, .side-card select:last-child { margin-bottom: 0; }
+  .side-card input:focus, .side-card select:focus {
+    outline: none;
+    border-color: inherit;
+  }
+
+  .status-pills {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .status-pill {
+    flex: 1;
+    min-width: 70px;
+    padding: 7px 4px;
+    border-radius: 8px;
+    border: 1.5px solid #e5e5ea;
+    background: white;
+    font-size: 12px;
+    font-weight: 500;
+    text-align: center;
+    cursor: pointer;
+    color: #3c3c43;
+    transition: all 0.15s;
+  }
+  .status-pill.selected-paid { background: #e8f8f0; border-color: #34c759; color: #1a7a3a; }
+  .status-pill.selected-partial { background: #fff8e6; border-color: #ff9500; color: #8a5000; }
+  .status-pill.selected-pending { background: #f2f2f7; border-color: #8e8e93; color: #3c3c43; }
+
+  .btn-submit {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, #c9a84c, #a8813a);
+    color: white;
+    border: none;
+    border-radius: 14px;
+    font-size: 17px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+    letter-spacing: 0.3px;
+    transition: opacity 0.2s;
+  }
+  .btn-submit:active { opacity: 0.85; }
+  .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: #1c1c1e;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 24px;
+    font-size: 15px;
+    font-weight: 500;
+    z-index: 100;
+    transition: transform 0.3s ease;
+    white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.success { background: #34c759; }
+  .toast.error { background: #ff3b30; }
+
+  /* Summary screen */
+  .summary-total {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .total-box {
+    border-radius: 14px;
+    padding: 16px;
+    text-align: center;
+  }
+  .total-box.groom { background: #eef4ff; }
+  .total-box.bride { background: #fff0f5; }
+  .total-box .label { font-size: 12px; font-weight: 500; color: #8e8e93; margin-bottom: 6px; }
+  .total-box.groom .amount { color: #2c6fad; font-size: 22px; font-weight: 700; }
+  .total-box.bride .amount { color: #b5176e; font-size: 22px; font-weight: 700; }
+
+  .grand-total {
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    color: white;
+    border-radius: 14px;
+    padding: 16px;
+    text-align: center;
+    margin-bottom: 16px;
+  }
+  .grand-total .label { font-size: 13px; opacity: 0.7; margin-bottom: 4px; }
+  .grand-total .amount { font-size: 28px; font-weight: 700; color: #c9a84c; }
+
+  .expense-list { list-style: none; }
+  .expense-item {
+    padding: 14px 0;
+    border-bottom: 1px solid #f2f2f7;
+  }
+  .expense-item:last-child { border-bottom: none; }
+  .expense-name { font-size: 15px; font-weight: 500; margin-bottom: 4px; }
+  .expense-date { font-size: 12px; color: #8e8e93; margin-bottom: 6px; }
+  .expense-splits { display: flex; gap: 8px; flex-wrap: wrap; }
+  .split-badge {
+    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-weight: 500;
+  }
+  .split-badge.groom { background: #eef4ff; color: #2c6fad; }
+  .split-badge.bride { background: #fff0f5; color: #b5176e; }
+
+  .loading-spinner {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(255,255,255,0.4);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-left: 8px;
+  }
+
+  /* Dashboard styles */
+  .dashboard-summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .dashboard-box {
+    border-radius: 14px;
+    padding: 16px;
+    text-align: center;
+    background: white;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .dashboard-box.total-all { background: linear-gradient(135deg, #1a1a2e, #16213e); color: white; }
+  .dashboard-box .label { font-size: 12px; color: #8e8e93; margin-bottom: 6px; }
+  .dashboard-box.groom .amount { color: #2c6fad; font-size: 20px; font-weight: 700; }
+  .dashboard-box.bride .amount { color: #b5176e; font-size: 20px; font-weight: 700; }
+  .dashboard-box.total-all .amount { color: #c9a84c; font-size: 20px; font-weight: 700; }
+
+  .dashboard-list { list-style: none; padding: 0; margin: 0; }
+  .dashboard-item { padding: 12px; border-bottom: 1px solid #f2f2f7; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+  .dashboard-item .left { display: flex; flex-direction: column; }
+  .dashboard-item .right { display: flex; gap: 8px; align-items: center; }
+  .load-more { margin-top: 12px; width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #e5e5ea; background: white; cursor: pointer; }
+
+  /* Overlay / modal */
+  .overlay-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: none; align-items: center; justify-content: center; z-index: 200; }
+  .overlay-backdrop.show { display: flex; }
+  .overlay-card { background: white; width: 92%; max-width: 520px; border-radius: 12px; padding: 16px; box-shadow: 0 8px 40px rgba(0,0,0,0.4); }
+  .overlay-actions { display: flex; gap: 8px; margin-top: 12px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #8e8e93;
+  }
+  .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-state p { font-size: 15px; }
+
+  .btn-refresh {
+    width: 100%;
+    padding: 12px;
+    background: white;
+    border: 1.5px solid #e5e5ea;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 500;
+    color: #3c3c43;
+    cursor: pointer;
+    margin-bottom: 16px;
+    transition: background 0.15s;
+  }
+  .btn-refresh:active { background: #f2f2f7; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>💍 מעקב הוצאות חתונה</h1>
+  <p>הזנה מהירה מהנייד</p>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('form')">הוסף הוצאה</div>
+  <div class="tab" onclick="switchTab('summary')">סיכום</div>
+  <div class="tab" onclick="switchTab('dashboard')">דשבורד</div>
+</div>
+
+<!-- FORM SCREEN -->
+<div id="screen-form" class="screen active">
+
+  <div class="card">
+    <div class="card-title">פרטי ההוצאה</div>
+
+    <div class="field">
+      <label>הוצאה / ספק *</label>
+      <input type="text" id="expense-name" placeholder="למשל: צלם, אולם, קייטרינג..." autocomplete="off">
+    </div>
+
+    <div class="field">
+      <label>תיאור נוסף</label>
+      <textarea id="expense-desc" placeholder="פרטים, הערות, מספר טלפון..."></textarea>
+    </div>
+
+    <div class="field">
+      <label>תאריך</label>
+      <input type="date" id="expense-date">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">פיצול תשלום</div>
+
+    <div class="split-row">
+      <!-- GROOM SIDE -->
+      <div class="side-card groom">
+        <div class="side-label">👰‍♂️ צד חתן</div>
+        <input type="number" id="groom-amount" placeholder="₪ סכום" inputmode="numeric" min="0">
+        <div class="status-pills" id="groom-status">
+          <div class="status-pill" data-status="שולם" onclick="selectStatus('groom', this)">שולם</div>
+          <div class="status-pill" data-status="מקדמה" onclick="selectStatus('groom', this)">מקדמה</div>
+          <div class="status-pill" data-status="טרם שולם" onclick="selectStatus('groom', this)">טרם שולם</div>
+        </div>
+      </div>
+
+      <!-- BRIDE SIDE -->
+      <div class="side-card bride">
+        <div class="side-label">👰 צד כלה</div>
+        <input type="number" id="bride-amount" placeholder="₪ סכום" inputmode="numeric" min="0">
+        <div class="status-pills" id="bride-status">
+          <div class="status-pill" data-status="שולם" onclick="selectStatus('bride', this)">שולם</div>
+          <div class="status-pill" data-status="מקדמה" onclick="selectStatus('bride', this)">מקדמה</div>
+          <div class="status-pill" data-status="טרם שולם" onclick="selectStatus('bride', this)">טרם שולם</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">תקציב מתוכנן</div>
+    <div class="field" style="margin:0">
+      <input type="number" id="budget" placeholder="₪ כמה תיקצבתם להוצאה הזו?" inputmode="numeric" min="0">
+    </div>
+  </div>
+
+  <button class="btn-submit" id="btn-submit" onclick="submitExpense()">
+    ✅ שמור הוצאה
+  </button>
+</div>
+
+<!-- SUMMARY SCREEN -->
+<div id="screen-summary" class="screen">
+  <button class="btn-refresh" onclick="loadSummary()">🔄 רענן נתונים</button>
+
+  <div class="summary-total">
+    <div class="total-box groom">
+      <div class="label">צד חתן</div>
+      <div class="amount" id="total-groom">—</div>
+    </div>
+    <div class="total-box bride">
+      <div class="label">צד כלה</div>
+      <div class="amount" id="total-bride">—</div>
+    </div>
+  </div>
+
+  <div class="grand-total">
+    <div class="label">סה"כ הוצאות</div>
+    <div class="amount" id="total-all">—</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">הוצאות אחרונות</div>
+    <ul class="expense-list" id="expense-list">
+      <div class="empty-state">
+        <div class="icon">📋</div>
+        <p>לחץ על רענן נתונים</p>
+      </div>
+    </ul>
+  </div>
+</div>
+
+<!-- DASHBOARD SCREEN -->
+<div id="screen-dashboard" class="screen">
+  <button class="btn-refresh" onclick="loadDashboard(true)">🔄 רענן דשבורד</button>
+
+  <div class="dashboard-summary">
+    <div class="dashboard-box groom">
+      <div class="label">סה"כ חתן</div>
+      <div class="amount" id="dashboard-groom">—</div>
+    </div>
+    <div class="dashboard-box bride">
+      <div class="label">סה"כ כלה</div>
+      <div class="amount" id="dashboard-bride">—</div>
+    </div>
+    <div class="dashboard-box total-all">
+      <div class="label">סה"כ כולל</div>
+      <div class="amount" id="dashboard-all">—</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">כל ההוצאות</div>
+    <ul class="dashboard-list" id="dashboard-expense-list">
+      <div class="empty-state">
+        <div class="icon">📋</div>
+        <p>לחץ על רענן דשבורד</p>
+      </div>
+    </ul>
+    <button class="load-more" id="btn-load-more" onclick="loadDashboard()">טען עוד 10</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- EDIT OVERLAY -->
+<div class="overlay-backdrop" id="edit-overlay">
+  <div class="overlay-card">
+    <div class="card-title">ערוך הוצאה</div>
+    <div class="field">
+      <label>שם הוצאה</label>
+      <input type="text" id="edit-name" readonly>
+    </div>
+    <div class="split-row">
+      <div class="side-card groom">
+        <div class="side-label">👰‍♂️ צד חתן</div>
+        <input type="number" id="edit-groom-amount" placeholder="₪ סכום" inputmode="numeric" min="0">
+        <div class="status-pills" id="edit-groom-status">
+          <div class="status-pill" data-status="שולם" onclick="selectOverlayStatus('groom', this)">שולם</div>
+          <div class="status-pill" data-status="מקדמה" onclick="selectOverlayStatus('groom', this)">מקדמה</div>
+          <div class="status-pill" data-status="טרם שולם" onclick="selectOverlayStatus('groom', this)">טרם שולם</div>
+        </div>
+      </div>
+      <div class="side-card bride">
+        <div class="side-label">👰 צד כלה</div>
+        <input type="number" id="edit-bride-amount" placeholder="₪ סכום" inputmode="numeric" min="0">
+        <div class="status-pills" id="edit-bride-status">
+          <div class="status-pill" data-status="שולם" onclick="selectOverlayStatus('bride', this)">שולם</div>
+          <div class="status-pill" data-status="מקדמה" onclick="selectOverlayStatus('bride', this)">מקדמה</div>
+          <div class="status-pill" data-status="טרם שולם" onclick="selectOverlayStatus('bride', this)">טרם שולם</div>
+        </div>
+      </div>
+    </div>
+    <div class="overlay-actions">
+      <button class="btn-submit" id="btn-save-edit" onclick="saveEditChanges()">שמור שינויים</button>
+      <button class="btn-submit" style="background:#ddd;color:#1c1c1e;padding:12px;" onclick="closeEditOverlay()">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzaRlQaGydTpDWNppuo4t7TcXW-pog0iWFP6uVDOdNauyp9mOhLlbTWLqtphTlmW9PK4g/exec';
+
+let groomStatus = '';
+let brideStatus = '';
+
+// Dashboard / overlay state
+let dashboardPage = 0;
+let dashboardPerPage = 10;
+let editingRowIndex = null;
+let overlayGroomStatus = '';
+let overlayBrideStatus = '';
+
+// Set today's date
+document.getElementById('expense-date').value = new Date().toISOString().split('T')[0];
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('screen-' + tab).classList.add('active');
+  if (tab === 'summary') loadSummary();
+  if (tab === 'dashboard') loadDashboard(true);
+}
+
+function selectStatus(side, el) {
+  const container = document.getElementById(side + '-status');
+  container.querySelectorAll('.status-pill').forEach(p => {
+    p.classList.remove('selected-paid', 'selected-partial', 'selected-pending');
+  });
+  const status = el.dataset.status;
+  if (side === 'groom') groomStatus = status;
+  else brideStatus = status;
+
+  if (status === 'שולם') el.classList.add('selected-paid');
+  else if (status === 'מקדמה') el.classList.add('selected-partial');
+  else el.classList.add('selected-pending');
+}
+
+// --- Dashboard and overlay functions ---
+async function loadDashboard(reset = false) {
+  if (reset) { dashboardPage = 0; }
+  const list = document.getElementById('dashboard-expense-list');
+  const groomEl = document.getElementById('dashboard-groom');
+  const brideEl = document.getElementById('dashboard-bride');
+  const allEl = document.getElementById('dashboard-all');
+
+  try {
+    const res = await fetch(SCRIPT_URL + '?action=getSummary');
+    const data = await res.json();
+    const fmt = n => '₪' + Number(n).toLocaleString('he-IL');
+    groomEl.textContent = fmt(data.groomTotal);
+    brideEl.textContent = fmt(data.brideTotal);
+    allEl.textContent = fmt(data.grandTotal);
+
+    const expenses = (data.expenses || []).slice().reverse();
+    const start = dashboardPage * dashboardPerPage;
+    const pageItems = expenses.slice(start, start + dashboardPerPage);
+
+    if (reset || dashboardPage === 0) {
+      if (!pageItems.length) list.innerHTML = '<div class="empty-state"><div class="icon">📋</div><p>אין הוצאות בדשבורד</p></div>';
+      else list.innerHTML = '';
+    }
+
+    pageItems.forEach(e => {
+      const li = document.createElement('li');
+      li.className = 'dashboard-item';
+      li.dataset.rowIndex = e.rowIndex;
+      li.innerHTML = `
+        <div class="left">
+          <div class="expense-name">${e.name}</div>
+          <div class="expense-date">${e.date}</div>
+        </div>
+        <div class="right">
+          ${e.groomAmount > 0 ? `<span class="split-badge groom">חתן: ₪${Number(e.groomAmount).toLocaleString()} · ${e.groomStatus}</span>` : ''}
+          ${e.brideAmount > 0 ? `<span class="split-badge bride">כלה: ₪${Number(e.brideAmount).toLocaleString()} · ${e.brideStatus}</span>` : ''}
+        </div>
+      `;
+      li.addEventListener('click', () => openEditOverlay(e));
+      list.appendChild(li);
+    });
+
+    // increment page for next load
+    if (pageItems.length) dashboardPage += 1;
+  } catch (err) {
+    showToast('שגיאה בטעינת דשבורד', 'error');
+  }
+}
+
+function openEditOverlay(expense) {
+  editingRowIndex = expense.rowIndex;
+  document.getElementById('edit-name').value = expense.name || '';
+  document.getElementById('edit-groom-amount').value = expense.groomAmount || '';
+  document.getElementById('edit-bride-amount').value = expense.brideAmount || '';
+  overlayGroomStatus = expense.groomStatus || 'טרם שולם';
+  overlayBrideStatus = expense.brideStatus || 'טרם שולם';
+  // set pills
+  const setPills = (id, status) => {
+    const c = document.getElementById(id);
+    c.querySelectorAll('.status-pill').forEach(p => p.classList.remove('selected-paid','selected-partial','selected-pending'));
+    const target = Array.from(c.querySelectorAll('.status-pill')).find(p => p.dataset.status === status);
+    if (target) {
+      if (status === 'שולם') target.classList.add('selected-paid');
+      else if (status === 'מקדמה') target.classList.add('selected-partial');
+      else target.classList.add('selected-pending');
+    }
+  };
+  setPills('edit-groom-status', overlayGroomStatus);
+  setPills('edit-bride-status', overlayBrideStatus);
+  document.getElementById('edit-overlay').classList.add('show');
+}
+
+function closeEditOverlay() {
+  document.getElementById('edit-overlay').classList.remove('show');
+  editingRowIndex = null;
+}
+
+function selectOverlayStatus(side, el) {
+  const container = document.getElementById('edit-' + side + '-status');
+  container.querySelectorAll('.status-pill').forEach(p => p.classList.remove('selected-paid', 'selected-partial', 'selected-pending'));
+  const status = el.dataset.status;
+  if (side === 'groom') overlayGroomStatus = status;
+  else overlayBrideStatus = status;
+  if (status === 'שולם') el.classList.add('selected-paid');
+  else if (status === 'מקדמה') el.classList.add('selected-partial');
+  else el.classList.add('selected-pending');
+}
+
+async function saveEditChanges() {
+  if (!editingRowIndex) return;
+  const groomAmt = document.getElementById('edit-groom-amount').value || '0';
+  const brideAmt = document.getElementById('edit-bride-amount').value || '0';
+  const payload = {
+    action: 'updateExpense',
+    rowIndex: editingRowIndex,
+    groomAmount: groomAmt,
+    groomStatus: overlayGroomStatus || 'טרם שולם',
+    brideAmount: brideAmt,
+    brideStatus: overlayBrideStatus || 'טרם שולם'
+  };
+  try {
+    await fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    showToast('✅ השינויים נשמרו', 'success');
+    closeEditOverlay();
+    // refresh dashboard and summary
+    dashboardPage = 0;
+    loadDashboard(true);
+    loadSummary();
+  } catch (err) {
+    showToast('שגיאה בשמירה', 'error');
+  }
+}
+
+// --- end dashboard and overlay ---
+
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + type;
+  setTimeout(() => t.classList.add('show'), 10);
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+async function submitExpense() {
+  const name = document.getElementById('expense-name').value.trim();
+  if (!name) { showToast('נא להזין שם הוצאה', 'error'); return; }
+
+  const groomAmt = document.getElementById('groom-amount').value;
+  const brideAmt = document.getElementById('bride-amount').value;
+  if (!groomAmt && !brideAmt) { showToast('נא להזין סכום לפחות לצד אחד', 'error'); return; }
+
+  const btn = document.getElementById('btn-submit');
+  btn.disabled = true;
+  btn.innerHTML = 'שומר... <span class="loading-spinner"></span>';
+
+  const data = {
+    action: 'addExpense',
+    name,
+    description: document.getElementById('expense-desc').value.trim(),
+    date: document.getElementById('expense-date').value,
+    groomAmount: groomAmt || '0',
+    groomStatus: groomStatus || 'טרם שולם',
+    brideAmount: brideAmt || '0',
+    brideStatus: brideStatus || 'טרם שולם',
+    budget: document.getElementById('budget').value || '0',
+    total: (parseFloat(groomAmt || 0) + parseFloat(brideAmt || 0)).toFixed(0)
+  };
+
+  try {
+    await fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    showToast('✅ נשמר בהצלחה!', 'success');
+    resetForm();
+  } catch (e) {
+    showToast('שגיאה בשמירה, נסה שוב', 'error');
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '✅ שמור הוצאה';
+}
+
+function resetForm() {
+  document.getElementById('expense-name').value = '';
+  document.getElementById('expense-desc').value = '';
+  document.getElementById('expense-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('groom-amount').value = '';
+  document.getElementById('bride-amount').value = '';
+  document.getElementById('budget').value = '';
+  groomStatus = '';
+  brideStatus = '';
+  document.querySelectorAll('.status-pill').forEach(p =>
+    p.classList.remove('selected-paid', 'selected-partial', 'selected-pending'));
+}
+
+async function loadSummary() {
+  document.getElementById('total-groom').textContent = '...';
+  document.getElementById('total-bride').textContent = '...';
+  document.getElementById('total-all').textContent = '...';
+
+  try {
+    const res = await fetch(SCRIPT_URL + '?action=getSummary');
+    const data = await res.json();
+
+    const fmt = n => '₪' + Number(n).toLocaleString('he-IL');
+    document.getElementById('total-groom').textContent = fmt(data.groomTotal);
+    document.getElementById('total-bride').textContent = fmt(data.brideTotal);
+    document.getElementById('total-all').textContent = fmt(data.grandTotal);
+
+    const list = document.getElementById('expense-list');
+    if (!data.expenses || data.expenses.length === 0) {
+      list.innerHTML = '<div class="empty-state"><div class="icon">📋</div><p>אין הוצאות עדיין</p></div>';
+      return;
+    }
+
+    list.innerHTML = data.expenses.slice().reverse().map(e => `
+      <li class="expense-item">
+        <div class="expense-name">${e.name}</div>
+        <div class="expense-date">${e.date}</div>
+        <div class="expense-splits">
+          ${e.groomAmount > 0 ? `<span class="split-badge groom">חתן: ₪${Number(e.groomAmount).toLocaleString()} · ${e.groomStatus}</span>` : ''}
+          ${e.brideAmount > 0 ? `<span class="split-badge bride">כלה: ₪${Number(e.brideAmount).toLocaleString()} · ${e.brideStatus}</span>` : ''}
+        </div>
+      </li>
+    `).join('');
+  } catch (e) {
+    showToast('שגיאה בטעינת נתונים', 'error');
+  }
+}
+</script>
+</body>
+</html>
