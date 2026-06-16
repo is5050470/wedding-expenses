@@ -463,6 +463,14 @@
     <div class="field">
       <label>שם הוצאה</label>
       <input type="text" id="edit-name" readonly>
+      <div class="field">
+  <label>תיאור</label>
+  <input type="text" id="edit-desc" readonly>
+</div>
+<div class="field">
+  <label>תקציב מתוכנן</label>
+  <input type="text" id="edit-budget" readonly>
+</div>
     </div>
     <div class="split-row">
       <div class="side-card groom">
@@ -497,6 +505,7 @@ let groomStatus = '';
 let brideStatus = '';
 
 // Dashboard / overlay state
+
 let dashboardPage = 0;
 let dashboardPerPage = 10;
 let editingRowIndex = null;
@@ -582,6 +591,8 @@ async function loadDashboard(reset = false) {
 function openEditOverlay(expense) {
   editingRowIndex = expense.rowIndex;
   document.getElementById('edit-name').value = expense.name || '';
+  document.getElementById('edit-desc').value = expense.description || '';
+document.getElementById('edit-budget').value = expense.budget ? '₪' + Number(expense.budget).toLocaleString('he-IL') : '';
   document.getElementById('edit-groom-amount').value = expense.groomAmount || '';
   document.getElementById('edit-bride-amount').value = expense.brideAmount || '';
   overlayGroomStatus = expense.groomStatus || 'טרם שולם';
